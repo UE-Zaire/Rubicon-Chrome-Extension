@@ -24,7 +24,7 @@ class HistoryGraph {
         this.nodes.push(historyNode);
         // add suggestions asynchronously
         for (const url of ['www.google.com', 'www.stackoverflow.com', 'wikipedia.org']) {
-            this.addSuggestion(historyNode, url, url);
+            //this.addSuggestion(historyNode, url, url);
         }
     }
 

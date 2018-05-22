@@ -19,7 +19,7 @@ class HistoryGraphView extends React.Component {
       super(props);
   }
 
-  public state = { toggle: true, histories: [], input: '' };
+  public state = { toggle: true, histories: [], input: '', currentHistory: '' };
 
   public handleToggle() {
     this.setState({ toggle: !this.state.toggle });
@@ -48,15 +48,15 @@ class HistoryGraphView extends React.Component {
 
   public handleChangeHistory = (evt) => {
       const title = evt;
-      chrome.runtime.sendMessage({type: 'loadHistory', name: title}, (response) => {        
-        chrome.runtime.sendMessage({type: "getNodesAndLinks"}, (response) => {
-          console.log('RECEIVED NODES', response);
-            this.setNodesAndLinks(response.nodes, response.links);
-            if (this.restart !== null) {
-              this.restart();
-            }
-        });
+      chrome.runtime.sendMessage({type: 'loadHistory', name: title }, (resp) => {
+        this.loadHistory();
       });
+  }
+
+  public handleClear() {
+    chrome.runtime.sendMessage({type: 'clearHistory'}, (resp) => {
+      console.log({resp});
+    })
   }
 
   public loadGraph = () => {
@@ -173,10 +173,7 @@ class HistoryGraphView extends React.Component {
   }
 
   public componentDidMount() {
-      chrome.runtime.sendMessage({type: "getNodesAndLinks"}, (response) => {
-          this.setNodesAndLinks(response.nodes, response.links);
-          this.loadGraph();
-      });      
+      this.loadHistory();
       this.getUserGraphs();    
   }
 
@@ -207,6 +204,7 @@ public render() {
         </Form.Item>
         <Form.Item>
           <Button onClick={ this.handleFormSubmit.bind(this) } style={{ marginLeft: "-60px", marginBottom: "5px" }} htmlType="submit">Save</Button>
+          <Button onClick={ this.handleClear }>Clear</Button>
         </Form.Item>
         <Select           
           showSearch
@@ -230,16 +228,19 @@ public render() {
     );
 }
 
-private setNodesAndLinks(nodes: {[id: string]: GraphNode}, links: Array<{source: number, target: number}>) {
-  this.nodes = Object.keys(nodes).map(id => nodes[id]);
-  // const nodeDict = {};
-
-  // for (const n of this.nodes) {
-  //     nodeDict[n.data.name] = n;
-  // }
-  this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
-  console.log('NODES', this.nodes, 'LINKS', this.links);
-}
+  private loadHistory() {
+    chrome.runtime.sendMessage({type: "getNodesAndLinks"}, (response) => {
+      const nodes = response.nodes;
+      const links = response.links;
+      this.nodes = Object.keys(nodes).map(id => nodes[id]);
+      this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
+      if (this.restart !== null) {
+        this.restart();
+      } else {
+        this.loadGraph();
+      }
+    });
+  }
 }
 
 export default HistoryGraphView;
