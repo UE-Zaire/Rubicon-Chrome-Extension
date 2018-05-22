@@ -18,8 +18,7 @@
   },
 
   "browser_action": {
-    "default_title": "menu",
-    "default_popup": "auth.html"
+    "default_title": "menu"
   },
 
   "content_scripts": [
@@ -33,7 +32,7 @@
   ],
 
   "background": {
-    "scripts": ["socket.io.js", "js/eventPage.js", "js/auth.js"],
+    "scripts": ["socket.io.js", "js/eventPage.js", "js/auth.js", "js/oauthFlow.js"],
     "persistent": true
   },
 
