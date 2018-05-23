@@ -88,7 +88,7 @@ class HistoryGraphView extends React.Component {
       const   color = d3.scaleOrdinal(d3.schemeCategory10);
       const simulation = d3.forceSimulation(this.nodes)
           .force("charge", d3.forceManyBody().strength(-200).distanceMax(200))
-          .force("link", d3.forceLink(this.links).distance((d: any) => d.target.isSuggestion ? 50 : 100).strength(0.5))
+          .force("link", d3.forceLink(this.links).distance((d: any) => d.target.isSuggestion ? 60 : 100).strength(0.5))
           .force("y", d3.forceY((d: any) => 100).strength(d => d.isSuggestion? 0 : .5))// d.isSuggestion? d.y: 0))
           .force("x", d3.forceX((d: any) => d.x).strength(d => d.isSuggestion? 0 : .5))
           // .force("x", d3.forceX(window.innerWidth * .5).strength(0.1))
@@ -108,21 +108,21 @@ class HistoryGraphView extends React.Component {
               .attr('transform', (d: any) => `translate(${d.x}, ${d.y})`)
               .merge(node);
         node.append<SVGCircleElement>('circle')
-          .attr('r', 20)
+          .attr('r', (d: any) => d.isSuggestion ? 20 : 40)
           .style('stroke', 'lightblue')
           .style('stroke-width', 2)
-          .style('fill', "white")
+          .style('fill', (d: any) => d.isSuggestion ? "#E8F7FB": "white")
           .on("mouseenter", (d: any) => {
             const { id } = d;
-
+            // console.log('selected', d3.select('#selectedNode').data(d.title))
             const selection = d3.selectAll('circle').filter((d: any) => d.id === id)
             .style("fill", "lightblue");
           })
           .on("mouseleave", (d: any) => {
             const { id } = d;
-
+            d3.select('#selectedNode').exit().remove()
             const selection = d3.selectAll('circle').filter((d: any) => d.id === id)
-            .style("fill", "white");
+            .style("fill", (d: any) => d.isSuggestion ? "#E8F7FB": "white");
           })
           node.append("text")
               .attr("dx", -20)
@@ -231,7 +231,8 @@ class HistoryGraphView extends React.Component {
       console.log({nodes})
       this.nodes = Object.keys(nodes).map(id => nodes[id]);
       this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
-      Object.keys(nodes).forEach((n: any) => nodes[n].x += window.innerWidth * Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length / 10);
+      const nonSugNodes = Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length;
+      Object.keys(nodes).forEach((n: any) => nodes[n].x += window.innerWidth - (window.innerWidth * (1 / (nonSugNodes === 1 ? 2 : nonSugNodes))));
       if (this.restart !== null) {
         this.restart();
       } else {
@@ -306,7 +307,8 @@ class HistoryGraphView extends React.Component {
       const nodes = response.nodes;
       const links = response.links;
       this.nodes = Object.keys(nodes).map(id => nodes[id]);
-      Object.keys(nodes).forEach((n: any) => nodes[n].x += window.innerWidth * Object.keys(nodes).length / 10);
+      const nonSugNodes = Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length;
+      Object.keys(nodes).forEach((n: any) => nodes[n].x += window.innerWidth - (window.innerWidth * (1 / (nonSugNodes === 1 ? 2 : nonSugNodes))));
       this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
       if (this.restart !== null) {
         this.restart();
