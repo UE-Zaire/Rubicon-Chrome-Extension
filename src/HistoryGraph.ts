@@ -21,10 +21,13 @@ class HistoryGraph {
         if (this.lastHistoryNode !== null) {
             this.lastHistoryNode.next = historyNode;
         }
-        this.lastHistoryNode = historyNode;
-        this.nodes.push(historyNode);
-
-        return historyNode;
+        const statement = (this.lastHistoryNode && historyNode.page.title && this.lastHistoryNode.page.title !== historyNode.page.title);
+        if (statement || !this.lastHistoryNode) {
+            this.lastHistoryNode = historyNode;
+            this.nodes.push(historyNode);    
+            return historyNode;
+        } 
+        return false;
     }
 
     addSuggestion(anchor, url, title, fullTitle) {

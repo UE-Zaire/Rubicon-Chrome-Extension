@@ -25,14 +25,13 @@
     {
       "matches": ["<all_urls>"],
       "exclude_globs": ["http://localhost:3000/*", "https://www.facebook.com/*", "https://mail.google.com/*", "https://twitter.com/*", "https://www.google.com/"],
-      "css": ["/css/App.css"],
       "js": ["/js/app.js", "/js/menu.js"],
       "run_at": "document_end"
     }
   ],
 
   "background": {
-    "scripts": [/*"socket.io.js",*/"js/eventPage.js", "js/auth.js", "js/oauthFlow.js"],
+    "scripts": ["js/eventPage.js", "js/auth.js"],
     "persistent": true
   },
 
