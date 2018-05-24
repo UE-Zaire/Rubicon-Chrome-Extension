@@ -15,6 +15,7 @@ class HistoryGraphView extends React.Component {
   private links: Array<{source: SimulationNodeDatum, target: SimulationNodeDatum}> = [];
   private restart: any = null; // is reset to restart function once simulation is loaded
   public socket = io('http://localhost:3005');
+  public mouseScrollPosition = 'none';
 
   constructor(props: any) {
       super(props);
@@ -94,7 +95,6 @@ class HistoryGraphView extends React.Component {
           // .force("x", d3.forceX(window.innerWidth * .5).strength(0.1))
           //.force('center', d3.forceCenter(width / 2, height / 2))
           .alphaTarget(1)
-          .on("tick", ticked)
       const g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
       let link = g.append("g").attr("stroke", "lightblue").attr("stroke-width", 2).selectAll(".link");
       let node = g.selectAll('.node');
@@ -189,13 +189,23 @@ class HistoryGraphView extends React.Component {
 
       this.restart = restart.bind(this, simulation);
 
-      function ticked() {
+      const ticked = () => {
           node.attr('transform', (d: any) => `translate(${d.x}, ${d.y})`)
+          console.log(this.mouseScrollPosition);
+          if (this.mouseScrollPosition === 'left') {
+            simulation.force("x", d3.forceX((d: any) => d.x - 10).strength(d => d.isSuggestion? 0 : .5))
+          } else if (this.mouseScrollPosition  === 'right') {
+            simulation.force("x", d3.forceX((d: any) => d.x + 10).strength(d => d.isSuggestion? 0 : .5))
+          } else {
+            // simulation.force("x", d3.forceX((d: any) => d.x).strength(d => d.isSuggestion? 0 : .5))
+          }
           link.attr("x1", (d: any) => d.source.x)
               .attr("y1", (d: any) => d.source.y)
               .attr("x2", (d: any) => d.target.x)
               .attr("y2", (d: any) => d.target.y);
       }
+
+      simulation.on("tick", ticked);
 
       function dragstarted(d: any) {
           if (!d3.event.active) {
@@ -212,7 +222,7 @@ class HistoryGraphView extends React.Component {
         
         function dragended(d: any) {
           if (!d3.event.active) {
-              simulation.alphaTarget(0)
+              simulation.alphaTarget(1)
           };
           d.fx = null;
           d.fy = null;
@@ -241,6 +251,20 @@ class HistoryGraphView extends React.Component {
     });
 
     this.getUserGraphs();    
+  }
+
+  public handleScroll(evt: any) {
+    if (evt.clientX > window.innerWidth * 0.95) {
+      this.mouseScrollPosition = 'right';
+    } else if (evt.clientX < window.innerWidth * 0.05) {
+      this.mouseScrollPosition = 'left';
+    } else {
+      this.mouseScrollPosition = 'none';
+    }
+  }
+
+  public handleExitScroll() {
+    this.mouseScrollPosition = 'none';
   }
 
   public render() {
@@ -290,7 +314,8 @@ class HistoryGraphView extends React.Component {
         </Select>
       </Form>
       </div>
-      <svg style={style}  ref={(ref: SVGSVGElement) => this.ref = ref}/>
+      <svg style={style} id="historySVG" ref={(ref: SVGSVGElement) => this.ref = ref}
+        onMouseMove={this.handleScroll.bind(this)} onMouseOut={this.handleExitScroll.bind(this)}/>
     </>
     );
 
