@@ -4,6 +4,7 @@
   "name": "Rubicon",
   "description": "Keep track of your history/tabs!",
   "version": "0.0.1",
+
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA13polO0UhrAe88ZsVOl10yG4JiAZs2wdK7pzPWd86QruKNCakOPDC3e2Gw9f/VOUNsoYGDZkiZUhb4osZWUDqM3K0rDL+SBdu/8A/7cDRXQ9ENF6UAnsRRjo9i+1/2F+mdulsS3UbHTEDIVgt7rC9zY7zp+TLY2xB9FL8s7BOR8p1erCKqIevIrfWO5ZiuOsr5AKZiinkFKt5+4KMBxLimrWXIoE3bSeV166iVOXnq3wAdMj7dk3i4USHrvUEHDrnu+EL2r/Ta44FBjBfOpwwdgwCdY3l3oyhsAbyn6OvIO3h37YwCoWfNJrVVU5bIdf2apl5MIh3KVmEB/9l7+AvQIDAQAB",
 
   "oauth2": {
