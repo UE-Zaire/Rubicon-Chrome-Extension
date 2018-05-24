@@ -4,15 +4,51 @@ import { SimulationNodeDatum } from 'd3';
 import Page from './Page';
 import GraphLink from './GraphLink';
 import GraphNode from './GraphNode';
-import * as io from 'socket.io-client';
 import HistoryGraph from './HistoryGraph';
 import axios from 'axios';
+import * as io from 'socket.io-client';
+
+var user;
+
+chrome.identity.getAuthToken({interactive: true}, function(token) {
+    axios.get('https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=' + token)
+    .then((response: any) => {
+        const { id, name, link, picture } = response.data;
+        user = id;
+
+      axios.post('http:localhost:3005/api/chromeSession', { id, name, link, picture })
+      .then((res: any) => {
+          console.log(res);
+      })
+
+    })
+    .catch((err: any) => {
+        console.log(err);
+    })
+});  
 
 var historyGraph = new HistoryGraph();
-let currentHistory = null;
+var currentHistory = null;
+var toggle = true;
 
+var socket = io.connect('http://localhost:3005');
+socket.on('historyForExtension', (data) => {
+    if (user === data.userId) {
+        axios.get('http://localhost:3005/api/history', {params: {query: data.selectedGraphName}})
+        .then((res: any) => {
+            currentHistory = data.selectedGraphName;
+            console.log({currentHistory})
+            historyGraph = new HistoryGraph();
+            historyGraph.fromJSON(res.data);
+        })
+        .catch(err => {
+            console.log('ERROR LOADING HISTORY', err);
+        })
+    }
+});
+    
 chrome.runtime.onMessage.addListener(
-  function(request, sender, sendResponse) {
+    (request, sender, sendResponse) => {
     if (request.type === 'deleteNode') {
       historyGraph.deleteNode(request.id);
     } else if (request.type === "getNodesAndLinks") {
@@ -21,8 +57,7 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === 'saveHistory') {
         const name = request.name;
         currentHistory = name;
-        historyGraph.pruneRecommendations();
-        console.log('saving History', {historyGraph});
+        //historyGraph.pruneRecommendations();
         axios.post('http://localhost:3005/api/history', {
             history: name,
             nodes: historyGraph.toJSON()
@@ -35,7 +70,6 @@ chrome.runtime.onMessage.addListener(
         .then(res => {
             currentHistory = name;
             historyGraph = new HistoryGraph();
-            console.log('loading history:', {historyGraph});
             historyGraph.fromJSON(res.data);
             sendResponse({ res: 'gotIt' });
         })
@@ -46,21 +80,21 @@ chrome.runtime.onMessage.addListener(
         return true;
     } else if (request.type === 'clearHistory') {
         historyGraph = new HistoryGraph();
-        console.log('clearing', {historyGraph});
         currentHistory = null;
         sendResponse({'clearing': 'clearing'});
     } else if (request.type === 'addPage') {
         const url = request.url;
         let title: any = request.title.slice(0, 10).padEnd(13, '.');
+        let fullTitle: any = request.title;
 
         axios.get('http://localhost:3005/api/extensionRecs', { params: { link: url } })
         .then(res => {
-            const historyNode = historyGraph.addPage(url, title);
-            console.log('rec:', res.data);
-            for (const url of res.data) {
-                historyGraph.addSuggestion(historyNode, url[1], url[0]);
+            const historyNode = historyGraph.addPage(url, title, fullTitle);
+            if (historyNode) {
+                for (const url of res.data) {
+                    historyGraph.addSuggestion(historyNode, url[1], url[0], fullTitle);
+                }
             }
-            historyGraph.pruneRecommendations();
             sendResponse(historyGraph.generateGraph());
         })
 
@@ -70,30 +104,18 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === "updateHistory") {
         axios.patch('http://localhost:3005/api/history', { history: request.name, nodes: historyGraph.toJSON() })
         .then(res => {
-            console.log(res);
             sendResponse({done: 'done'});
         })
         return true;
     } else if (request.type === 'deleteHistory') {
         axios.delete('http://localhost:3005/api/history', { data: { history: request.name } })
         .then(res => {
-            console.log(res);
             sendResponse({done: 'done'});
         })
         return true;
+    } else if (request.type === 'prune') {
+        historyGraph.pruneRecommendations();
+        sendResponse(historyGraph.generateGraph());
     }
 });
 
-chrome.tabs.onCreated.addListener((tab) => {
-    console.log('opened tab:', tab);
-})
-  
-
-
-// chrome.tabs.onUpdated.addListener((tabId, tabInfo, tab) => {
-//     let url = tab.url;
-//     let title = tab.title;
-//     console.log('tabs updated: url', url, 'title', title);
-//     if (tabInfo.status !== 'complete') return;
-//     historyGraph.addPage(url, title);
-// })

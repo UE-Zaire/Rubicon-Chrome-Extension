@@ -5,7 +5,6 @@ module.exports = {
         app: path.join(__dirname, "src/index.tsx"),
         eventPage: path.join(__dirname, "src/eventPage.tsx"),
         auth: path.join(__dirname, "src/auth.ts"),
-        oauthFlow: path.join(__dirname, "src/oauthFlow.ts"),
         menu: path.join(__dirname, "src/Menu.tsx")
     },
     devtool: "inline-source-map",

@@ -11,9 +11,9 @@ class HistoryGraph {
     lastHistoryNode: HistoryNode | null = null;
     nextNodeId: number = 0;
 
-    addPage (url, title): any {
+    addPage (url, title, fullTitle): any {
         if (this.pages[title] === undefined) {
-            this.pages[title] = new Page(url, title);
+            this.pages[title] = new Page(url, title, fullTitle);
         }
         const page = this.pages[title];
         const historyNode: HistoryNode = new HistoryNode(page, this.lastHistoryNode, this.nextNodeId);
@@ -21,16 +21,19 @@ class HistoryGraph {
         if (this.lastHistoryNode !== null) {
             this.lastHistoryNode.next = historyNode;
         }
-        this.lastHistoryNode = historyNode;
-        this.nodes.push(historyNode);
-
-        return historyNode;
+        const statement = (this.lastHistoryNode && historyNode.page.title && this.lastHistoryNode.page.title !== historyNode.page.title);
+        if (statement || !this.lastHistoryNode) {
+            this.lastHistoryNode = historyNode;
+            this.nodes.push(historyNode);    
+            return historyNode;
+        } 
+        return false;
     }
 
-    addSuggestion(anchor, url, title) {
+    addSuggestion(anchor, url, title, fullTitle) {
         console.log({anchor, url, title})
         if (this.pages[title] === undefined) {
-            this.pages[title] = new Page(url, title);
+            this.pages[title] = new Page(url, title, fullTitle);
         }
         const page = this.pages[title];
         const suggestionNode: SuggestionNode = new SuggestionNode(page, anchor, this.nextNodeId);

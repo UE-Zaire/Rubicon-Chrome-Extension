@@ -1,12 +1,11 @@
 import * as d3 from 'd3';
 import { SimulationNodeDatum } from 'd3';
 import * as React from 'react';
-import './App.css';
 import GraphNode from './GraphNode';
-import * as io from 'socket.io-client';
 import { Affix, Button, Select, Input, Form, Tag, Icon, Tooltip } from 'antd';
 import * as FA from 'react-fa';
 import axios from 'axios';
+
 
 class HistoryGraphView extends React.Component {
 
@@ -14,11 +13,11 @@ class HistoryGraphView extends React.Component {
   private nodes: GraphNode[] = [];
   private links: Array<{source: SimulationNodeDatum, target: SimulationNodeDatum}> = [];
   private restart: any = null; // is reset to restart function once simulation is loaded
-  public socket = io('http://localhost:3005');
   public mouseScrollPosition = 'none';
 
   constructor(props: any) {
       super(props);
+      this.handleClear = this.handleClear.bind(this);
   }
 
   public state = { toggle: true, histories: [], input: '', currentHistory: '', onHistory: false };
@@ -82,6 +81,22 @@ class HistoryGraphView extends React.Component {
     })
   }
 
+  public pruneRecommendations() {
+    chrome.runtime.sendMessage({type: "prune"}, (response) => {
+      const nodes = response.nodes;
+      const links = response.links;
+      this.nodes = Object.keys(nodes).map(id => nodes[id]);
+      this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
+      const nonSugNodes = Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length;
+      Object.keys(nodes).forEach((n: any) => nodes[n].x += window.innerWidth - (window.innerWidth * (1 / (nonSugNodes === 1 ? 2 : nonSugNodes))));
+      if (this.restart !== null) {
+        this.restart();
+      } else {
+        this.loadGraph();
+      }
+    })
+  }
+
   public loadGraph = () => {
       const svg = d3.select(this.ref);
       const    width = +svg.attr("width");
@@ -90,11 +105,10 @@ class HistoryGraphView extends React.Component {
       const simulation = d3.forceSimulation(this.nodes)
           .force("charge", d3.forceManyBody().strength(-200).distanceMax(200))
           .force("link", d3.forceLink(this.links).distance((d: any) => d.target.isSuggestion ? 60 : 100).strength(0.5))
-          .force("y", d3.forceY((d: any) => 100).strength(d => d.isSuggestion? 0 : .5))// d.isSuggestion? d.y: 0))
+          .force("y", d3.forceY((d: any) => 100).strength(d => d.isSuggestion? 0 : .5))
           .force("x", d3.forceX((d: any) => d.x).strength(d => d.isSuggestion? 0 : .5))
-          // .force("x", d3.forceX(window.innerWidth * .5).strength(0.1))
-          //.force('center', d3.forceCenter(width / 2, height / 2))
           .alphaTarget(1)
+
       const g = svg.append("g").attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
       let link = g.append("g").attr("stroke", "lightblue").attr("stroke-width", 2).selectAll(".link");
       let node = g.selectAll('.node');
@@ -103,7 +117,7 @@ class HistoryGraphView extends React.Component {
           node = node.data(this.nodes, (d: any) => d.index);
           node.exit().remove();
           node = node.enter()
-              .append("g")// ((d.mousedOver === true) || !d.isSuggestion)? color(d.index): 'grey')
+              .append("g")
               .attr("r", 8)
               .attr('transform', (d: any) => `translate(${d.x}, ${d.y})`)
               .merge(node);
@@ -113,16 +127,14 @@ class HistoryGraphView extends React.Component {
           .style('stroke-width', 2)
           .style('fill', (d: any) => d.isSuggestion ? "#E8F7FB": "white")
           .on("mouseenter", (d: any) => {
-            const { id } = d;
-            // console.log('selected', d3.select('#selectedNode').data(d.title))
-            const selection = d3.selectAll('circle').filter((d: any) => d.id === id)
-            .style("fill", "lightblue");
+              const { title } = d.data;
+              d3.selectAll('circle').filter((d: any) => d.data.title === title)
+              .style("fill", "lightblue");
           })
           .on("mouseleave", (d: any) => {
-            const { id } = d;
-            d3.select('#selectedNode').exit().remove()
-            const selection = d3.selectAll('circle').filter((d: any) => d.id === id)
-            .style("fill", (d: any) => d.isSuggestion ? "#E8F7FB": "white");
+              const { title } = d.data;           
+              d3.selectAll('circle').filter((d: any) => d.data.title === title)
+              .style("fill", (d: any) => d.isSuggestion ? "#E8F7FB" : "white");
           })
           node.append("text")
               .attr("dx", -20)
@@ -130,13 +142,13 @@ class HistoryGraphView extends React.Component {
               .attr("fill", (d: any) => color(d.index)) 
               .text((d: any) => d.data.title);
 
-
-          // node.append("image")
-          //     .attr("xlink:href", "https://github.com/favicon.ico")
-          //     .attr("x", -8)
-          //     .attr("y", -8)
-          //     .attr("width", 20)
-          //     .attr("height", 20)
+          node.append("svg:title").text((d: any) => {
+            if (d.data.title.slice(0, 9) !== d.data.fullTitle.slice(0, 9)) {
+              return d.data.title;
+            }
+            return d.data.fullTitle
+          });
+          
           node.on('click', (d: any) => {
                   window.location = d.data.url;
                   restart(simulation);
@@ -144,8 +156,7 @@ class HistoryGraphView extends React.Component {
               node.on('contextmenu', (d: any) => {
                 d3.event.preventDefault();
                 chrome.runtime.sendMessage({type: "deleteNode", id: d.id})
-                // TODO: DELETE THE NODE
-                // throw('error');
+              
                 this.nodes = this.nodes.filter(n => (n.id !== d.id) && n.anchorId !== d.id);
                 this.links = this.links.filter((link: any) => link.source.id !== d.id && link.target.id !== d.id);
                 this.nodes = this.nodes.filter(n => n.anchorId !== n.id);
@@ -166,14 +177,7 @@ class HistoryGraphView extends React.Component {
                       .on("start", dragstarted)
                       .on("drag", dragged)
                       .on("end", dragended))
-                  
-                  // node.on('mouseover', (d: any) => {
-                  //     d.mousedOver = true;
-                  //     d3.select(this).empty
-                  // })
-                  // .on('mouseout', (d: any) => {d.mousedOver = false;});
-
-              // Apply the general update pattern to the links.
+                 
               link = link.data(this.links, (d: {source: SimulationNodeDatum, target: SimulationNodeDatum})  =>
                   d.source.index + "-" + d.target.index)
               link.exit().remove();
@@ -191,14 +195,12 @@ class HistoryGraphView extends React.Component {
 
       const ticked = () => {
           node.attr('transform', (d: any) => `translate(${d.x}, ${d.y})`)
-          console.log(this.mouseScrollPosition);
           if (this.mouseScrollPosition === 'left') {
             simulation.force("x", d3.forceX((d: any) => d.x - 10).strength(d => d.isSuggestion? 0 : .5))
           } else if (this.mouseScrollPosition  === 'right') {
             simulation.force("x", d3.forceX((d: any) => d.x + 10).strength(d => d.isSuggestion? 0 : .5))
-          } else {
-            // simulation.force("x", d3.forceX((d: any) => d.x).strength(d => d.isSuggestion? 0 : .5))
           }
+
           link.attr("x1", (d: any) => d.source.x)
               .attr("y1", (d: any) => d.source.y)
               .attr("x2", (d: any) => d.target.x)
@@ -229,16 +231,18 @@ class HistoryGraphView extends React.Component {
         }
   }
 
+
   public componentDidMount() {
     chrome.runtime.sendMessage({type: "checkHistory"}, (resp) => {
-      if (resp) this.setState({onHistory: resp.currentHistory});
+      if (resp) {
+        this.setState({onHistory: resp.currentHistory});
+      }
     }) 
 
     chrome.runtime.sendMessage({type: "addPage", url: window.location.href,
      title: document.getElementsByTagName("title")[0].innerHTML}, (response) => {
       const nodes = response.nodes;
       const links = response.links;
-      console.log({nodes})
       this.nodes = Object.keys(nodes).map(id => nodes[id]);
       this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
       const nonSugNodes = Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length;
@@ -269,7 +273,7 @@ class HistoryGraphView extends React.Component {
 
   public render() {
     const width = window.innerWidth;
-    const height = window.innerHeight / 5;
+    const height = window.innerHeight / 4.1;
     const style = {
       backgroundColor: '#f0f2f5',
       height,
@@ -301,7 +305,8 @@ class HistoryGraphView extends React.Component {
           <Tooltip title={this.state.onHistory ? "Update \"" + this.state.onHistory + "\" History" : "Save History"}><Button onClick={ this.handleFormSubmit.bind(this) } shape="circle" icon={this.state.onHistory ? "reload" : "download"} style={{ marginLeft: "-60px", marginBottom: "5px" }} htmlType="submit"></Button></Tooltip>
           <Tooltip title="Clear"><Button onClick={ this.handleClear.bind(this) } shape="circle" icon="close" style={{ marginLeft: "2px", marginBottom: "5px" }} ></Button></Tooltip>
         </Form.Item>
-        {this.state.onHistory ? <Tooltip title="Delete History"><Button type="default" shape="circle" icon="delete" style={{ marginTop: "3px", marginLeft: "-14px" }} onClick={ this.handleDelete.bind(this) }/></Tooltip> : null}
+        {this.state.onHistory ? <Tooltip title="Delete History"><Button type="default" shape="circle" icon="delete" style={{ marginRight: "16px", marginTop: "3px", marginLeft: "-14px" }} onClick={ this.handleDelete.bind(this) }/></Tooltip> : null}
+        <Tooltip title="Prune Old Recommendations"><Button style={{ marginLeft: "-14px", marginTop: "3px" }} shape="circle" icon="minus" onClick={ this.pruneRecommendations.bind(this) } ></Button></Tooltip >
         <Select  
           defaultValue={this.state.histories[0] ? this.state.histories[0].name : ""}         
           showSearch
