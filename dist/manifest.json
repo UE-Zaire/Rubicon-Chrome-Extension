@@ -32,7 +32,7 @@
   ],
 
   "background": {
-    "scripts": ["socket.io.js", "js/eventPage.js", "js/auth.js", "js/oauthFlow.js"],
+    "scripts": [/*"socket.io.js",*/"js/eventPage.js", "js/auth.js", "js/oauthFlow.js"],
     "persistent": true
   },
 

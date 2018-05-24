@@ -3,10 +3,10 @@ import { SimulationNodeDatum } from 'd3';
 import * as React from 'react';
 import './App.css';
 import GraphNode from './GraphNode';
-import * as io from 'socket.io-client';
 import { Affix, Button, Select, Input, Form, Tag, Icon, Tooltip } from 'antd';
 import * as FA from 'react-fa';
 import axios from 'axios';
+
 
 class HistoryGraphView extends React.Component {
 
@@ -14,7 +14,6 @@ class HistoryGraphView extends React.Component {
   private nodes: GraphNode[] = [];
   private links: Array<{source: SimulationNodeDatum, target: SimulationNodeDatum}> = [];
   private restart: any = null; // is reset to restart function once simulation is loaded
-  public socket = io('http://localhost:3005');
 
   constructor(props: any) {
       super(props);
@@ -130,7 +129,7 @@ class HistoryGraphView extends React.Component {
               .attr("fill", (d: any) => color(d.index)) 
               .text((d: any) => d.data.title);
 
-
+          node.append("svg:title").text((d: any) => d.data.fullTitle);
           // node.append("image")
           //     .attr("xlink:href", "https://github.com/favicon.ico")
           //     .attr("x", -8)
@@ -219,16 +218,20 @@ class HistoryGraphView extends React.Component {
         }
   }
 
+
   public componentDidMount() {
     chrome.runtime.sendMessage({type: "checkHistory"}, (resp) => {
-      if (resp) this.setState({onHistory: resp.currentHistory});
+      if (resp) {
+        this.setState({onHistory: resp.currentHistory});
+        console.log(resp);
+        this.handleChangeHistory(resp.currentHistory || 'Shopping');
+      }
     }) 
 
     chrome.runtime.sendMessage({type: "addPage", url: window.location.href,
      title: document.getElementsByTagName("title")[0].innerHTML}, (response) => {
       const nodes = response.nodes;
       const links = response.links;
-      console.log({nodes})
       this.nodes = Object.keys(nodes).map(id => nodes[id]);
       this.links = links.map((link: any) => ({source: nodes[link.source], target: nodes[link.target]}));
       const nonSugNodes = Object.keys(nodes).map((key: any) => nodes[key]).filter((node: any) => !node.isSuggestion).length;
@@ -245,7 +248,7 @@ class HistoryGraphView extends React.Component {
 
   public render() {
     const width = window.innerWidth;
-    const height = window.innerHeight / 5;
+    const height = window.innerHeight / 4;
     const style = {
       backgroundColor: '#f0f2f5',
       height,
