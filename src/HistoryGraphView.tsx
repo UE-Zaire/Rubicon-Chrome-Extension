@@ -2,7 +2,7 @@ import * as d3 from 'd3';
 import { SimulationNodeDatum } from 'd3';
 import * as React from 'react';
 import GraphNode from './GraphNode';
-import { Affix, Button, Select, Input, Form, Tag, Icon, Tooltip } from 'antd';
+import { Affix, Button, Select, Input, Form, Tag, Icon, Tooltip, Alert } from 'antd';
 import * as FA from 'react-fa';
 import axios from 'axios';
 
@@ -20,7 +20,7 @@ class HistoryGraphView extends React.Component {
       this.handleClear = this.handleClear.bind(this);
   }
 
-  public state = { toggle: true, histories: [], input: '', currentHistory: '', onHistory: false };
+  public state = { toggle: true, histories: [], input: '', currentHistory: '', onHistory: false, alert: false, alertType: '' };
 
   public handleToggle() {
     this.loadHistory(() => this.setState({ toggle: !this.state.toggle }));
@@ -34,9 +34,20 @@ class HistoryGraphView extends React.Component {
     ev.preventDefault();
     const { onHistory, input } = this.state;
     const type = onHistory ? "updateHistory" : "saveHistory";
-    const name = type === "saveHistory" ? input : onHistory;
+    const name: any = type === "saveHistory" ? input : onHistory;
+    if (name.length < 1) {
+      setTimeout(() => {
+        this.setState({ alert: false, alertType: '' });
+      }, 3000)
+      return this.setState({ alert: true, alertType: 'name' });
+    } 
     chrome.runtime.sendMessage({ type, name }, (response) => {
-      if (type === "saveHistory") {
+      if (response.empty) {
+        setTimeout(() => {
+          this.setState({ alert: false, alertType: '' });
+        }, 3000)
+        return this.setState({ alert: true, alertType: 'empty' });
+      } else if (type === "saveHistory") {
         const newHistories = this.state.histories.slice();
         newHistories.unshift({ name });
         this.setState({ onHistory: name, histories: newHistories });
@@ -291,6 +302,7 @@ class HistoryGraphView extends React.Component {
 
   const show = (
     <>
+      {this.state.alert ? this.state.alertType === 'name' ? <Alert message="Please Name Your History" type="warning" /> : this.state.alertType === 'empty' ? <Alert message="Add Steps To Your History" type="warning" /> : null : null }
       <div style={{ boxShadow: "0 -1px 8px 0 rgba(107, 104, 104, 0.2), 0 -1px 20px 0 rgba(80, 79, 79, 0.19)", backgroundColor: "#f65d5d", paddingBottom: "10px", paddingTop: "3px", position: "relative", height: "45px", opacity: this.state.toggle ? 1 : 0 }}>
       <Button type="primary" shape="circle" icon="shrink" style={{ marginTop: "3px", float: "left", marginLeft: "5px" }} onClick={ this.handleToggle.bind(this) }></Button>
       <Form layout="inline">
