@@ -10,6 +10,7 @@ class HistoryGraph {
     nodes: Array<HistoryNode | SuggestionNode> = [];
     lastHistoryNode: HistoryNode | null = null;
     nextNodeId: number = 0;
+    pruned: any;
 
     addPage (url, title, fullTitle): any {
         if (this.pages[title] === undefined) {
@@ -144,8 +145,11 @@ class HistoryGraph {
     }
 
     pruneRecommendations() {
-        const lastNode: any = this.nodes.filter((node: any) => !node.anchor && !node.next)[0];
-        this.nodes = this.nodes.filter((node: any) => node.anchor ? node.anchor.page.title === lastNode.page.title : true);
+        if (this.nodes !== this.pruned) {
+            const lastNode: any = this.nodes.filter((node: any) => !node.anchor && !node.next)[0];
+            this.nodes = this.nodes.filter((node: any) => node.anchor ? node.anchor.page.title === lastNode.page.title : true);
+            this.pruned = this.nodes;  
+        }
     }
 }
 

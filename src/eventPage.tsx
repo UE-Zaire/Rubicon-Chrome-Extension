@@ -15,7 +15,7 @@ chrome.identity.getAuthToken({interactive: true}, function(token) {
     .then((response: any) => {
         const { id, name, link, picture } = response.data;
         user = id;
-
+        
       axios.post('http:localhost:3005/api/chromeSession', { id, name, link, picture })
       .then((res: any) => {
           console.log(res);
@@ -57,13 +57,16 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === 'saveHistory') {
         const name = request.name;
         currentHistory = name;
-        //historyGraph.pruneRecommendations();
-        axios.post('http://localhost:3005/api/history', {
-            history: name,
-            nodes: historyGraph.toJSON()
-        });
+        const hist = historyGraph.toJSON(); 
+        if (name.length > 1 && hist.length > 0) {
+            axios.post('http://localhost:3005/api/history', {
+                history: name,
+                nodes: hist
+            });
         sendResponse(currentHistory);
-
+        } else if (hist.length > 0) {
+            sendResponse({empty: true})
+        }
     } else if (request.type === 'loadHistory') {
         const name = request.name;
         axios.get('http://localhost:3005/api/history', {params: {query: name}})
