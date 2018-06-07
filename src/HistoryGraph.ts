@@ -124,7 +124,7 @@ class HistoryGraph {
             nodeDict[n.id] = newNode;
         })
         historyNodes.forEach((n: any) => {
-            if (n.next !== null) {
+            if (n.next !== null && nodeDict[n.next]) {
                 nodeDict[n.id].next = nodeDict[n.next];
                 nodeDict[n.next].prev = nodeDict[n.id];
             } else {
