@@ -3,12 +3,12 @@
 
   "name": "Rubicon",
   "description": "Keep track of your history/tabs!",
-  "version": "0.0.1",
+  "version": "0.0.2",
 
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA13polO0UhrAe88ZsVOl10yG4JiAZs2wdK7pzPWd86QruKNCakOPDC3e2Gw9f/VOUNsoYGDZkiZUhb4osZWUDqM3K0rDL+SBdu/8A/7cDRXQ9ENF6UAnsRRjo9i+1/2F+mdulsS3UbHTEDIVgt7rC9zY7zp+TLY2xB9FL8s7BOR8p1erCKqIevIrfWO5ZiuOsr5AKZiinkFKt5+4KMBxLimrWXIoE3bSeV166iVOXnq3wAdMj7dk3i4USHrvUEHDrnu+EL2r/Ta44FBjBfOpwwdgwCdY3l3oyhsAbyn6OvIO3h37YwCoWfNJrVVU5bIdf2apl5MIh3KVmEB/9l7+AvQIDAQAB",
+  "key": "key here",
 
   "oauth2": {
-    "client_id": "102465963719-qv92vab4m0kjec7k1hs63jvffdu0b8mj.apps.googleusercontent.com",
+    "client_id": "id here",
     "scopes":["https://www.googleapis.com/auth/userinfo.profile"]
   },
 
@@ -25,7 +25,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "exclude_globs": ["http://localhost:3000/*", "https://www.facebook.com/*", "https://mail.google.com/*", "https://twitter.com/*", "https://www.google.com/"],
+      "exclude_globs": ["http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com/*", "https://www.facebook.com/*", "https://mail.google.com/*", "https://twitter.com/*", "https://www.google.com/"],
       "js": ["/js/app.js", "/js/menu.js"],
       "run_at": "document_end"
     }

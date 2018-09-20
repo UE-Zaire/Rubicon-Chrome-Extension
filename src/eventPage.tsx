@@ -16,7 +16,7 @@ chrome.identity.getAuthToken({interactive: true}, function(token) {
         const { id, name, link, picture } = response.data;
         user = id;
         
-      axios.post('http:localhost:3005/api/chromeSession', { id, name, link, picture })
+      axios.post('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/chromeSession', { id, name, link, picture })
       .then((res: any) => {
           console.log(res);
       })
@@ -31,10 +31,10 @@ var historyGraph = new HistoryGraph();
 var currentHistory = null;
 var toggle = true;
 
-var socket = io.connect('http://localhost:3005');
+var socket = io.connect('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005');
 socket.on('historyForExtension', (data) => {
     if (user === data.userId) {
-        axios.get('http://localhost:3005/api/history', {params: {query: data.selectedGraphName}})
+        axios.get('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/history', {params: {query: data.selectedGraphName}})
         .then((res: any) => {
             currentHistory = data.selectedGraphName;
             console.log({currentHistory})
@@ -59,7 +59,7 @@ chrome.runtime.onMessage.addListener(
         currentHistory = name;
         const hist = historyGraph.toJSON(); 
         if (name.length > 1 && hist.length > 0) {
-            axios.post('http://localhost:3005/api/history', {
+            axios.post('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/history', {
                 history: name,
                 nodes: hist
             });
@@ -69,7 +69,7 @@ chrome.runtime.onMessage.addListener(
         }
     } else if (request.type === 'loadHistory') {
         const name = request.name;
-        axios.get('http://localhost:3005/api/history', {params: {query: name}})
+        axios.get('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/history', {params: {query: name}})
         .then(res => {
             currentHistory = name;
             historyGraph = new HistoryGraph();
@@ -90,7 +90,7 @@ chrome.runtime.onMessage.addListener(
         let title: any = request.title.slice(0, 10).padEnd(13, '.');
         let fullTitle: any = request.title;
 
-        axios.get('http://localhost:3005/api/extensionRecs', { params: { link: url } })
+        axios.get('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/extensionRecs', { params: { link: url } })
         .then(res => {
             const historyNode = historyGraph.addPage(url, title, fullTitle);
             if (historyNode) {
@@ -105,13 +105,13 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === 'checkHistory') {
         sendResponse({currentHistory}); 
     } else if (request.type === "updateHistory") {
-        axios.patch('http://localhost:3005/api/history', { history: request.name, nodes: historyGraph.toJSON() })
+        axios.patch('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/history', { history: request.name, nodes: historyGraph.toJSON() })
         .then(res => {
             sendResponse({done: 'done'});
         })
         return true;
     } else if (request.type === 'deleteHistory') {
-        axios.delete('http://localhost:3005/api/history', { data: { history: request.name } })
+        axios.delete('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/history', { data: { history: request.name } })
         .then(res => {
             sendResponse({done: 'done'});
         })
@@ -119,6 +119,15 @@ chrome.runtime.onMessage.addListener(
     } else if (request.type === 'prune') {
         historyGraph.pruneRecommendations();
         sendResponse(historyGraph.generateGraph());
+    } else if (request.type === 'getHistories') {
+        axios.get('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/histories')
+        .then((result: any) => {
+          sendResponse({ result });
+        })
+        .catch((err: any) => {
+          console.log(err);
+        })
+        return true;
     }
 });
 

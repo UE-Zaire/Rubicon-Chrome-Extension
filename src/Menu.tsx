@@ -23,7 +23,7 @@ class Menu extends React.Component<{}, IgraphState> {
   }
 
   getUserGraphs() {
-    axios.get('http://localhost:3005/api/histories')
+    axios.get('http://ec2-18-221-91-190.us-east-2.compute.amazonaws.com:3005/api/histories')
     .then((result: any) => {
       this.setState({ histories: result.data });
     })
