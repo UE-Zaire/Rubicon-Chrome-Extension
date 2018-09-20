@@ -58,12 +58,8 @@ class HistoryGraphView extends React.Component {
   }
 
   public getUserGraphs() {
-    axios.get('http://localhost:3005/api/histories')
-    .then((result: any) => {
+    chrome.runtime.sendMessage({ type: 'getHistories' }, ({result}) => {
       this.setState({ histories: result.data });
-    })
-    .catch((err: any) => {
-      console.log(err);
     })
   }
 
@@ -110,9 +106,9 @@ class HistoryGraphView extends React.Component {
 
   public loadGraph = () => {
       const svg = d3.select(this.ref);
-      const    width = +svg.attr("width");
-      const    height = +svg.attr("height");
-      const   color = d3.scaleOrdinal(d3.schemeCategory10);
+      const width = +svg.attr("width");
+      const height = +svg.attr("height");
+      const color = d3.scaleOrdinal(d3.schemeCategory10);
       const simulation = d3.forceSimulation(this.nodes)
           .force("charge", d3.forceManyBody().strength(-200).distanceMax(200))
           .force("link", d3.forceLink(this.links).distance((d: any) => d.target.isSuggestion ? 60 : 100).strength(0.5))
@@ -157,7 +153,7 @@ class HistoryGraphView extends React.Component {
             if (d.data.title.slice(0, 9) !== d.data.fullTitle.slice(0, 9)) {
               return d.data.title;
             }
-            return d.data.fullTitle
+            return d.data.fullTitle;
           });
           
           node.on('click', (d: any) => {
@@ -166,7 +162,7 @@ class HistoryGraphView extends React.Component {
               })
               node.on('contextmenu', (d: any) => {
                 d3.event.preventDefault();
-                chrome.runtime.sendMessage({type: "deleteNode", id: d.id})
+                chrome.runtime.sendMessage({type: "deleteNode", id: d.id});
               
                 this.nodes = this.nodes.filter(n => (n.id !== d.id) && n.anchorId !== d.id);
                 this.links = this.links.filter((link: any) => link.source.id !== d.id && link.target.id !== d.id);

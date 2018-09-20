@@ -11,8 +11,10 @@ class HistoryGraph {
     lastHistoryNode: HistoryNode | null = null;
     nextNodeId: number = 0;
     pruned: any;
+    memo: any;
 
     addPage (url, title, fullTitle): any {
+        if (this.pages[title]) return false;
         if (this.pages[title] === undefined) {
             this.pages[title] = new Page(url, title, fullTitle);
         }
@@ -32,7 +34,6 @@ class HistoryGraph {
     }
 
     addSuggestion(anchor, url, title, fullTitle) {
-        console.log({anchor, url, title})
         if (this.pages[title] === undefined) {
             this.pages[title] = new Page(url, title, fullTitle);
         }
@@ -90,7 +91,9 @@ class HistoryGraph {
         let last = this.lastHistoryNode;
                 let lastPosition = 0;
                 while (last !== null) {
-                    nodes[last.id].x = lastPosition;
+                    if (nodes[last.id]) {
+                        nodes[last.id].x = lastPosition;
+                    }             
                     lastPosition -= 150;
                     last = last.prev;
                 }
@@ -136,9 +139,11 @@ class HistoryGraph {
             }
         })
         suggestionNodes.forEach((n: any) => {
-            const newNode = new SuggestionNode(this.pages[n.data.url], nodeDict[n.anchor], n.id);
-            nodeDict[n.id] = newNode;
-            nodeDict[n.anchor].suggestions.push(nodeDict[n.id])
+            if (nodeDict[n.anchor].suggestions) {
+                const newNode = new SuggestionNode(this.pages[n.data.url], nodeDict[n.anchor], n.id);
+                nodeDict[n.id] = newNode;
+                nodeDict[n.anchor].suggestions.push(nodeDict[n.id])
+            }
         })
         console.log('NODES', Object.keys(nodeDict).map(n => nodeDict[n]));
         this.nodes =  Object.keys(nodeDict).map(n => nodeDict[n]);
@@ -147,7 +152,9 @@ class HistoryGraph {
     pruneRecommendations() {
         if (this.nodes !== this.pruned) {
             const lastNode: any = this.nodes.filter((node: any) => !node.anchor && !node.next)[0];
-            this.nodes = this.nodes.filter((node: any) => node.anchor ? node.anchor.page.title === lastNode.page.title : true);
+            if (lastNode) {
+                this.nodes = this.nodes.filter((node: any) => node.anchor ? node.anchor.page.title === lastNode.page.title : true);   
+            }
             this.pruned = this.nodes;  
         }
     }
